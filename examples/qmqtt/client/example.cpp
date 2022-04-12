@@ -34,10 +34,12 @@
 #include <QTimer>
 #include <QDebug>
 
-//const QHostAddress EXAMPLE_HOST = QHostAddress::LocalHost;
-const QHostAddress EXAMPLE_HOST = QHostAddress("platpush.wb4magxg.com");
-const quint16 EXAMPLE_PORT = 5222;
+const QHostAddress EXAMPLE_HOST = QHostAddress::LocalHost;
+//const QHostAddress EXAMPLE_HOST = QHostAddress("platpush.xxxxx.com");
+const quint16 EXAMPLE_PORT = 1883;
 const QString EXAMPLE_TOPIC = "ewogICAgImhlYWRlciI6IHsKICAgICAgICAiYWNjZXNzX3Rva2VuIjogImRjX2NuMS4xODAwMzc1ZjBiNi1iY2NhYTdiYjMyODQ0YTA1YTgyNDYzOTFkNTFiZGZiNSIsCiAgICAgICAgImFwcCI6ICJnbG9iYWwiLAogICAgICAgICJjaCI6ICJxdF93ZWJ1bGwiLAogICAgICAgICJjb250ZW50LXR5cGUiOiAiYXBwbGljYXRpb24vanNvbiIsCiAgICAgICAgImRldmljZS10eXBlIjogIk1hYyIsCiAgICAgICAgImRpZCI6ICI0YTNmYzJjZjdkYzJlMjZjZTZjMjgwMTExMjNlMzE0ZCIsCiAgICAgICAgImhsIjogInpoIiwKICAgICAgICAibG9jYWxlIjogImVuX1VTIiwKICAgICAgICAib2RpZCI6ICIzNGM2MjVmYzkxNjAyOGUwYmQ0YjUwZWM1ZjEyNjZiYiIsCiAgICAgICAgIm9zIjogIm1hYyIsCiAgICAgICAgIm9zdiI6ICIxMS42IiwKICAgICAgICAicGxhdGZvcm0iOiAicXQiLAogICAgICAgICJyZXFpZCI6ICI1OGE5MDAwNy1lNzU1LTRkNGYtOTE0NS1hODBlNjA3NWFkNGYiLAogICAgICAgICJ0X3RpbWUiOiAiMTY0OTc3MDQ4NzU1MyIsCiAgICAgICAgInRfdG9rZW4iOiAiIiwKICAgICAgICAidHoiOiAiQXNpYS9TaGFuZ2hhaSIsCiAgICAgICAgInZlciI6ICI1LjkuMCIsCiAgICAgICAgInZlcl9jb2RlIjogIiIKICAgIH0KfQo=";
+
+const QString host ="platpush.xxxxx.com";
 
 class Publisher : public QMQTT::Client
 {
@@ -144,7 +146,7 @@ int main(int argc, char** argv)
     sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
     sslConfig.setProtocol(QSsl::TlsV1_2);
     // Add custom SSL options here (for example extra certificates)
-    QMQTT::Client *client = new QMQTT::Client("push.webullfintech.com", 1883, sslConfig);
+    QMQTT::Client *client = new QMQTT::Client(host, EXAMPLE_PORT, sslConfig);
     //    client->setClientId("clientId");
     client->cleanSession();
     client->setUsername("test");
@@ -170,21 +172,16 @@ int main(int argc, char** argv)
     QObject::connect(client, &QMQTT::Client::connected, [&]() {
         // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
         // to continue connecting.
-        qDebug() << "sslErrors=====connected===:"<<QDateTime::currentDateTime();
+        qDebug() << "connected=====connected===:"<<QDateTime::currentDateTime();
         client->subscribe(EXAMPLE_TOPIC, 0);
 
     });
     QObject::connect(client, &QMQTT::Client::subscribed, [&](const QString& topic, const quint8 qos) {
         // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
         // to continue connecting.
-        qDebug() << "sslErrors=====subscribed===:"<<topic<<QDateTime::currentDateTime();
-//        client->subscribe(EXAMPLE_TOPIC, 0);
-
+        qDebug() << "subscribed=====subscribed===:"<<topic<<QDateTime::currentDateTime();
     });
-
     qDebug() << "version========: "<< QDateTime::currentDateTime();
-    //    Publisher publisher;
-    //    publisher.connectToHost();
     return app.exec();
 }
 
