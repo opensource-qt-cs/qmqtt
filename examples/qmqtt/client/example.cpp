@@ -32,10 +32,12 @@
 #include <qmqtt.h>
 #include <QCoreApplication>
 #include <QTimer>
+#include <QDebug>
 
-const QHostAddress EXAMPLE_HOST = QHostAddress::LocalHost;
-const quint16 EXAMPLE_PORT = 1883;
-const QString EXAMPLE_TOPIC = "qmqtt/exampletopic";
+//const QHostAddress EXAMPLE_HOST = QHostAddress::LocalHost;
+const QHostAddress EXAMPLE_HOST = QHostAddress("platpush.wb4magxg.com");
+const quint16 EXAMPLE_PORT = 5222;
+const QString EXAMPLE_TOPIC = "ewogICAgImhlYWRlciI6IHsKICAgICAgICAiYWNjZXNzX3Rva2VuIjogImRjX2NuMS4xODAwMzc1ZjBiNi1iY2NhYTdiYjMyODQ0YTA1YTgyNDYzOTFkNTFiZGZiNSIsCiAgICAgICAgImFwcCI6ICJnbG9iYWwiLAogICAgICAgICJjaCI6ICJxdF93ZWJ1bGwiLAogICAgICAgICJjb250ZW50LXR5cGUiOiAiYXBwbGljYXRpb24vanNvbiIsCiAgICAgICAgImRldmljZS10eXBlIjogIk1hYyIsCiAgICAgICAgImRpZCI6ICI0YTNmYzJjZjdkYzJlMjZjZTZjMjgwMTExMjNlMzE0ZCIsCiAgICAgICAgImhsIjogInpoIiwKICAgICAgICAibG9jYWxlIjogImVuX1VTIiwKICAgICAgICAib2RpZCI6ICIzNGM2MjVmYzkxNjAyOGUwYmQ0YjUwZWM1ZjEyNjZiYiIsCiAgICAgICAgIm9zIjogIm1hYyIsCiAgICAgICAgIm9zdiI6ICIxMS42IiwKICAgICAgICAicGxhdGZvcm0iOiAicXQiLAogICAgICAgICJyZXFpZCI6ICI1OGE5MDAwNy1lNzU1LTRkNGYtOTE0NS1hODBlNjA3NWFkNGYiLAogICAgICAgICJ0X3RpbWUiOiAiMTY0OTc3MDQ4NzU1MyIsCiAgICAgICAgInRfdG9rZW4iOiAiIiwKICAgICAgICAidHoiOiAiQXNpYS9TaGFuZ2hhaSIsCiAgICAgICAgInZlciI6ICI1LjkuMCIsCiAgICAgICAgInZlcl9jb2RlIjogIiIKICAgIH0KfQo=";
 
 class Publisher : public QMQTT::Client
 {
@@ -95,6 +97,9 @@ public:
         connect(this, &Subscriber::connected, this, &Subscriber::onConnected);
         connect(this, &Subscriber::subscribed, this, &Subscriber::onSubscribed);
         connect(this, &Subscriber::received, this, &Subscriber::onReceived);
+        connect(this, &Subscriber::error, this, [=](const QMQTT::ClientError error){
+            qDebug() << "ClientError" << error;
+        });
     }
     virtual ~Subscriber() {}
 
@@ -103,29 +108,83 @@ public:
 public slots:
     void onConnected()
     {
-        _qout << "connected" << endl;
+        qDebug() << "connected" << endl;
         subscribe(EXAMPLE_TOPIC, 0);
     }
 
     void onSubscribed(const QString& topic)
     {
-        _qout << "subscribed " << topic << endl;
+        qDebug() << "subscribed " << topic << endl;
     }
 
     void onReceived(const QMQTT::Message& message)
     {
-        _qout << "publish received: \"" << QString::fromUtf8(message.payload())
-              << "\"" << endl;
+        qDebug() << "publish received: \"" << QString::fromUtf8(message.payload())
+                 << "\"" << endl;
     }
 };
 
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
-    Subscriber subscriber;
-    subscriber.connectToHost();
-    Publisher publisher;
-    publisher.connectToHost();
+        Subscriber subscriber;
+        subscriber.setUsername("test");
+        subscriber.setPassword("test");
+        subscriber.setVersion(QMQTT::V3_1_1);
+        subscriber.setHostName("broker.hivemq.com");
+        subscriber.setPort(1883);
+        subscriber.setCleanSession(true);
+        QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+        config.setPeerVerifyMode(QSslSocket::VerifyNone);
+        config.setProtocol(QSsl::TlsV1_2);
+        subscriber.setSslConfiguration(config);
+//        subscriber.connectToHost();
+
+    QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
+    sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
+    sslConfig.setProtocol(QSsl::TlsV1_2);
+    // Add custom SSL options here (for example extra certificates)
+    QMQTT::Client *client = new QMQTT::Client("push.webullfintech.com", 1883, sslConfig);
+    //    client->setClientId("clientId");
+    client->cleanSession();
+    client->setUsername("test");
+    client->setPassword("test");
+    client->setVersion(QMQTT::V3_1_1);
+    // Optionally, set ssl errors you want to ignore. Be careful, because this may weaken security.
+    // See QSslSocket::ignoreSslErrors(const QList<QSslError> &) for more information.
+    //    client->ignoreSslErrors(<list of expected ssl errors>)
+    client->connectToHost();
+    // Here's another option to suppress SSL errors (again, be careful)
+    QObject::connect(client, &QMQTT::Client::sslErrors, [&](const QList<QSslError> &errors) {
+        // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
+        // to continue connecting.
+        qDebug() << "sslErrors========: "<< errors;
+        client->ignoreSslErrors();
+    });
+    QObject::connect(client, &QMQTT::Client::error, [&](const QMQTT::ClientError errors) {
+        // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
+        // to continue connecting.
+        qDebug() << "sslErrors=====333===: "<< errors;
+        client->ignoreSslErrors();
+    });
+    QObject::connect(client, &QMQTT::Client::connected, [&]() {
+        // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
+        // to continue connecting.
+        qDebug() << "sslErrors=====connected===:"<<QDateTime::currentDateTime();
+        client->subscribe(EXAMPLE_TOPIC, 0);
+
+    });
+    QObject::connect(client, &QMQTT::Client::subscribed, [&](const QString& topic, const quint8 qos) {
+        // Investigate the errors here, if you find no serious problems, call ignoreSslErrors()
+        // to continue connecting.
+        qDebug() << "sslErrors=====subscribed===:"<<topic<<QDateTime::currentDateTime();
+//        client->subscribe(EXAMPLE_TOPIC, 0);
+
+    });
+
+    qDebug() << "version========: "<< QDateTime::currentDateTime();
+    //    Publisher publisher;
+    //    publisher.connectToHost();
     return app.exec();
 }
 
